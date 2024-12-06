@@ -98,11 +98,30 @@
             justify-content: center;
             gap: 10px;
         }
+        .logo-preview-container {
+            position: relative;
+            display: inline-block;
+            margin: 10px auto;
+        }
         #logoPreview {
             max-width: 100px;
             max-height: 100px;
-            margin: 10px auto;
             display: none;
+        }
+        .close-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            line-height: 20px;
+            text-align: center;
+            cursor: pointer;
         }
         .hidden {
             display: none;
@@ -130,7 +149,10 @@
         <button class="logo-upload" onclick="document.getElementById('logoInput').click()">
             Unggah Logo (opsional)
         </button>
-        <img id="logoPreview" alt="Logo Preview" />
+        <div class="logo-preview-container">
+            <img id="logoPreview" alt="Logo Preview" />
+            <button class="close-btn hidden" onclick="removeLogo()">&times;</button>
+        </div>
         <button class="generate-btn" onclick="generateQRCode()">Generate QR Code</button>
         <div class="qrcode">
             <canvas id="qrcode"></canvas>
@@ -156,9 +178,19 @@
                     const logoPreview = document.getElementById('logoPreview');
                     logoPreview.src = selectedLogo;
                     logoPreview.style.display = 'block';
+                    document.querySelector('.close-btn').classList.remove('hidden');
                 };
                 reader.readAsDataURL(file);
             }
+        }
+
+        function removeLogo() {
+            selectedLogo = null;
+            const logoPreview = document.getElementById('logoPreview');
+            logoPreview.src = '';
+            logoPreview.style.display = 'none';
+            document.getElementById('logoInput').value = '';
+            document.querySelector('.close-btn').classList.add('hidden');
         }
 
         async function generateQRCode() {
@@ -204,8 +236,22 @@
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(logoX, logoY, logoSize, logoSize);
 
+                    // Calculate proportional logo size
+                    const logoAspectRatio = logo.width / logo.height;
+                    let logoDrawWidth = logoSize;
+                    let logoDrawHeight = logoSize;
+
+                    if (logoAspectRatio > 1) {
+                        logoDrawHeight = logoSize / logoAspectRatio;
+                    } else {
+                        logoDrawWidth = logoSize * logoAspectRatio;
+                    }
+
+                    const logoDrawX = logoX + (logoSize - logoDrawWidth) / 2;
+                    const logoDrawY = logoY + (logoSize - logoDrawHeight) / 2;
+
                     // Draw logo
-                    ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+                    ctx.drawImage(logo, logoDrawX, logoDrawY, logoDrawWidth, logoDrawHeight);
                 }
 
                 currentQRCode = canvas.toDataURL("image/png");
@@ -266,9 +312,7 @@
             document.getElementById("inputText").value = "";
             
             // Reset logo
-            document.getElementById("logoInput").value = "";
-            document.getElementById("logoPreview").style.display = "none";
-            selectedLogo = null;
+            removeLogo();
             
             // Clear QR code
             const canvas = document.getElementById("qrcode");
