@@ -10,22 +10,29 @@
             padding: 20px;
             background-color: #f4f4f9;
             text-align: center;
+            margin: 0;
         }
         .container {
             margin: 30px auto;
             max-width: 600px;
-            width: 100%; /* Membuat container responsif */
+            width: 100%;
         }
         .qrcode {
             margin: 20px auto;
             border: 1px solid #ccc;
             padding: 20px;
             background-color: #fff;
-            max-width: 100%; /* Menjaga lebar canvas agar responsif */
-            overflow: hidden;
+            max-width: 100%;
+            aspect-ratio: 1 / 1;
             display: flex;
-            justify-content: center; /* Menjaga canvas tetap di tengah */
+            justify-content: center;
             align-items: center;
+        }
+        #qrcode {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
         }
         input[type="text"], input[type="url"] {
             padding: 10px;
@@ -33,7 +40,7 @@
             margin: 10px;
             font-size: 16px;
             border: 1px solid #ccc;
-            box-sizing: border-box; /* Menjaga ukuran input tetap pas dalam kontainer */
+            box-sizing: border-box;
         }
         button {
             padding: 10px 20px;
@@ -42,6 +49,7 @@
             color: white;
             border: none;
             cursor: pointer;
+            margin: 5px;
         }
         button:hover {
             background-color: #45a049;
@@ -49,13 +57,7 @@
         .button-group {
             margin-top: 20px;
         }
-        canvas {
-            width: 100% !important; /* Memastikan canvas responsif */
-            max-width: 800px; /* Maksimal lebar 800px */
-            height: auto; /* Menjaga rasio aspek QR Code */
-        }
 
-        /* Media query untuk perangkat mobile */
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
@@ -68,21 +70,15 @@
                 font-size: 14px;
                 padding: 8px 16px;
             }
-            .button-group button {
-                font-size: 14px;
-                padding: 8px 16px;
-            }
         }
     </style>
 </head>
 <body>
     <h1>QR Code Generator</h1>
     <div class="container">
-        <!-- Input untuk teks atau URL -->
         <input id="inputText" type="text" placeholder="Masukkan teks atau URL untuk QR Code" />
         <button onclick="generateQRCode()">Generate QR Code</button>
         <div class="qrcode">
-            <!-- Tempat untuk menampilkan QR Code -->
             <canvas id="qrcode"></canvas>
         </div>
         <div class="button-group">
@@ -91,40 +87,39 @@
         </div>
     </div>
 
-    <!-- Mengimpor library QRCode.js -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.min.js"></script>
     <script>
         let currentQRCode = null;
 
-        // Fungsi untuk generate QR Code dengan resolusi tinggi
         function generateQRCode() {
             const inputText = document.getElementById("inputText").value;
 
-            // Mengecek apakah input kosong
             if (inputText === "") {
                 alert("Masukkan teks atau URL untuk membuat QR Code!");
                 return;
             }
 
-            // Mendapatkan canvas untuk gambar
             const canvas = document.getElementById("qrcode");
+            const qrcodeContainer = document.querySelector('.qrcode');
+            const containerSize = Math.min(qrcodeContainer.offsetWidth, qrcodeContainer.offsetHeight);
 
-            // Menggunakan QRCode.js untuk menghasilkan QR Code pada canvas dengan resolusi tinggi
             QRCode.toCanvas(canvas, inputText, {
-                width: 800,   // Ukuran tetap 800px untuk resolusi tinggi
-                margin: 3,    // Margin untuk QR Code
-                errorCorrectionLevel: 'H', // Pengaturan level koreksi kesalahan untuk kualitas lebih tinggi
+                width: 1024,
+                height: 1024,
+                margin: 3,
+                errorCorrectionLevel: 'H',
             }, function (error) {
                 if (error) {
                     console.error(error);
                     alert("Terjadi kesalahan dalam membuat QR Code!");
                 } else {
-                    currentQRCode = canvas.toDataURL("image/png"); // Menyimpan QR Code dalam format PNG
+                    currentQRCode = canvas.toDataURL("image/png");
+                    canvas.style.width = containerSize + 'px';
+                    canvas.style.height = containerSize + 'px';
                 }
             });
         }
 
-        // Fungsi untuk mendownload QR Code sebagai PNG
         function downloadQRCode() {
             if (!currentQRCode) {
                 alert("QR Code belum dibuat!");
@@ -133,18 +128,16 @@
 
             const link = document.createElement("a");
             link.href = currentQRCode;
-            link.download = "QRCode_HD.png"; // Nama file download
+            link.download = "QRCode_HD.png";
             link.click();
         }
 
-        // Fungsi untuk menyalin QR Code ke clipboard
         function copyQRCode() {
             if (!currentQRCode) {
                 alert("QR Code belum dibuat!");
                 return;
             }
 
-            // Membuat elemen gambar untuk menyalin ke clipboard
             const img = new Image();
             img.src = currentQRCode;
             img.onload = () => {
@@ -154,7 +147,6 @@
                 canvas.height = img.height;
                 context.drawImage(img, 0, 0);
                 
-                // Menyalin gambar ke clipboard
                 canvas.toBlob(blob => {
                     navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(() => {
                         alert("QR Code telah disalin ke clipboard!");
@@ -165,6 +157,8 @@
                 });
             };
         }
+
+        window.addEventListener('resize', generateQRCode);
     </script>
 </body>
 </html>
