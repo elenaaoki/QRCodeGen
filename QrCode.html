@@ -27,12 +27,14 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            box-sizing: border-box;
         }
         #qrcode {
             max-width: 100%;
             max-height: 100%;
             width: auto;
             height: auto;
+            display: block;
         }
         input[type="text"], input[type="url"] {
             padding: 10px;
@@ -40,6 +42,7 @@
             margin: 10px;
             font-size: 16px;
             border: 1px solid #ccc;
+            border-radius: 4px;
             box-sizing: border-box;
         }
         button {
@@ -48,27 +51,40 @@
             background-color: #4CAF50;
             color: white;
             border: none;
+            border-radius: 4px;
             cursor: pointer;
             margin: 5px;
+            transition: background-color 0.3s;
         }
         button:hover {
             background-color: #45a049;
         }
         .button-group {
             margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
         }
 
         @media (max-width: 600px) {
             .container {
                 padding: 10px;
+                margin: 10px auto;
             }
             input[type="text"], input[type="url"] {
-                width: 100%;
-                font-size: 14px;
+                width: 90%;
+                margin: 10px 0;
             }
             button {
-                font-size: 14px;
-                padding: 8px 16px;
+                width: 100%;
+                margin: 5px 0;
+            }
+            .button-group {
+                flex-direction: column;
+            }
+            .qrcode {
+                padding: 10px;
             }
         }
     </style>
@@ -92,17 +108,15 @@
         let currentQRCode = null;
 
         function generateQRCode() {
-            const inputText = document.getElementById("inputText").value;
+            const inputText = document.getElementById("inputText").value.trim();
 
-            if (inputText === "") {
+            if (!inputText) {
                 alert("Masukkan teks atau URL untuk membuat QR Code!");
                 return;
             }
 
             const canvas = document.getElementById("qrcode");
-            const qrcodeContainer = document.querySelector('.qrcode');
-            const containerSize = Math.min(qrcodeContainer.offsetWidth, qrcodeContainer.offsetHeight);
-
+            
             QRCode.toCanvas(canvas, inputText, {
                 width: 1024,
                 height: 1024,
@@ -114,8 +128,12 @@
                     alert("Terjadi kesalahan dalam membuat QR Code!");
                 } else {
                     currentQRCode = canvas.toDataURL("image/png");
-                    canvas.style.width = containerSize + 'px';
-                    canvas.style.height = containerSize + 'px';
+                    
+                    // Adjust canvas display size while maintaining internal resolution
+                    const container = document.querySelector('.qrcode');
+                    const size = Math.min(container.clientWidth - 40, container.clientHeight - 40);
+                    canvas.style.width = size + 'px';
+                    canvas.style.height = size + 'px';
                 }
             });
         }
@@ -142,13 +160,15 @@
             img.src = currentQRCode;
             img.onload = () => {
                 const canvas = document.createElement("canvas");
-                const context = canvas.getContext("2d");
                 canvas.width = img.width;
                 canvas.height = img.height;
+                const context = canvas.getContext("2d");
                 context.drawImage(img, 0, 0);
                 
                 canvas.toBlob(blob => {
-                    navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(() => {
+                    navigator.clipboard.write([
+                        new ClipboardItem({ "image/png": blob })
+                    ]).then(() => {
                         alert("QR Code telah disalin ke clipboard!");
                     }).catch(err => {
                         console.error("Gagal menyalin ke clipboard: ", err);
@@ -157,8 +177,6 @@
                 });
             };
         }
-
-        window.addEventListener('resize', generateQRCode);
     </script>
 </body>
 </html>
