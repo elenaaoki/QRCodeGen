@@ -16,6 +16,8 @@
             margin: 30px auto;
             max-width: 600px;
             width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
         }
         .qrcode {
             margin: 20px auto;
@@ -38,15 +40,38 @@
         }
         input[type="text"], input[type="url"] {
             padding: 10px;
-            width: 80%;
-            margin: 10px;
+            width: 100%;
+            margin: 10px 0;
             font-size: 16px;
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
         }
-        button {
-            padding: 10px 20px;
+        .logo-upload {
+            width: 100%;
+            padding: 12px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .generate-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        .action-btn {
+            flex: 1;
+            padding: 12px;
             font-size: 16px;
             background-color: #4CAF50;
             color: white;
@@ -54,10 +79,17 @@
             border-radius: 4px;
             cursor: pointer;
             margin: 5px;
-            transition: background-color 0.3s;
         }
-        button:hover {
-            background-color: #45a049;
+        .reset-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-size: 16px;
         }
         .button-group {
             margin-top: 20px;
@@ -66,25 +98,26 @@
             justify-content: center;
             gap: 10px;
         }
+        #logoPreview {
+            max-width: 100px;
+            max-height: 100px;
+            margin: 10px auto;
+            display: none;
+        }
+        .hidden {
+            display: none;
+        }
 
         @media (max-width: 600px) {
             .container {
-                padding: 0px;
+                padding: 0 15px;
                 margin: 10px auto;
-            }
-            input[type="text"], input[type="url"] {
-                width: 100%;
-                margin: 10px 0;
-            }
-            button {
-                width: 100%;
-                margin: 5px 0;
-            }
-            .button-group {
-                flex-direction: column;
             }
             .qrcode {
                 padding: 10px;
+            }
+            .button-group {
+                flex-direction: column;
             }
         }
     </style>
@@ -93,21 +126,42 @@
     <h1>QR Code Generator</h1>
     <div class="container">
         <input id="inputText" type="text" placeholder="Masukkan teks atau URL untuk QR Code" />
-        <button onclick="generateQRCode()">Generate QR Code</button>
+        <input type="file" id="logoInput" accept="image/*" class="hidden" onchange="handleLogoSelect(event)" />
+        <button class="logo-upload" onclick="document.getElementById('logoInput').click()">
+            Unggah Logo (opsional)
+        </button>
+        <img id="logoPreview" alt="Logo Preview" />
+        <button class="generate-btn" onclick="generateQRCode()">Generate QR Code</button>
         <div class="qrcode">
             <canvas id="qrcode"></canvas>
         </div>
         <div class="button-group">
-            <button onclick="downloadQRCode()">Download QR Code (HD PNG)</button>
-            <button onclick="copyQRCode()">Copy to Clipboard</button>
+            <button class="action-btn" onclick="downloadQRCode()">DOWNLOAD</button>
+            <button class="action-btn" onclick="copyQRCode()">COPY TO CLIPBOARD</button>
         </div>
+        <button class="reset-btn" onclick="resetAll()">RESET</button>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.min.js"></script>
     <script>
         let currentQRCode = null;
+        let selectedLogo = null;
 
-        function generateQRCode() {
+        function handleLogoSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedLogo = e.target.result;
+                    const logoPreview = document.getElementById('logoPreview');
+                    logoPreview.src = selectedLogo;
+                    logoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function generateQRCode() {
             const inputText = document.getElementById("inputText").value.trim();
 
             if (!inputText) {
@@ -116,26 +170,55 @@
             }
 
             const canvas = document.getElementById("qrcode");
-            
-            QRCode.toCanvas(canvas, inputText, {
+            const options = {
                 width: 1024,
                 height: 1024,
-                margin: 3,
+                margin: 1,
                 errorCorrectionLevel: 'H',
-            }, function (error) {
-                if (error) {
-                    console.error(error);
-                    alert("Terjadi kesalahan dalam membuat QR Code!");
-                } else {
-                    currentQRCode = canvas.toDataURL("image/png");
-                    
-                    // Adjust canvas display size while maintaining internal resolution
-                    const container = document.querySelector('.qrcode');
-                    const size = Math.min(container.clientWidth - 40, container.clientHeight - 40);
-                    canvas.style.width = size + 'px';
-                    canvas.style.height = size + 'px';
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
                 }
-            });
+            };
+
+            try {
+                // Generate QR Code
+                await QRCode.toCanvas(canvas, inputText, options);
+
+                // Add logo if selected
+                if (selectedLogo) {
+                    const ctx = canvas.getContext('2d');
+                    const logo = new Image();
+                    logo.src = selectedLogo;
+                    await new Promise((resolve, reject) => {
+                        logo.onload = resolve;
+                        logo.onerror = reject;
+                    });
+
+                    // Calculate logo size (25% of QR code)
+                    const logoSize = canvas.width * 0.25;
+                    const logoX = (canvas.width - logoSize) / 2;
+                    const logoY = (canvas.height - logoSize) / 2;
+
+                    // Draw white background for logo
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(logoX, logoY, logoSize, logoSize);
+
+                    // Draw logo
+                    ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+                }
+
+                currentQRCode = canvas.toDataURL("image/png");
+                
+                // Adjust canvas display size
+                const container = document.querySelector('.qrcode');
+                const size = Math.min(container.clientWidth - 40, container.clientHeight - 40);
+                canvas.style.width = size + 'px';
+                canvas.style.height = size + 'px';
+            } catch (error) {
+                console.error(error);
+                alert("Terjadi kesalahan dalam membuat QR Code!");
+            }
         }
 
         function downloadQRCode() {
@@ -176,6 +259,22 @@
                     });
                 });
             };
+        }
+
+        function resetAll() {
+            // Reset input text
+            document.getElementById("inputText").value = "";
+            
+            // Reset logo
+            document.getElementById("logoInput").value = "";
+            document.getElementById("logoPreview").style.display = "none";
+            selectedLogo = null;
+            
+            // Clear QR code
+            const canvas = document.getElementById("qrcode");
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            currentQRCode = null;
         }
     </script>
 </body>
